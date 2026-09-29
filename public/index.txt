@@ -1,0 +1,2973 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#191919">
+  <title>Extend</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #191919;
+      --rail: #1b1b1b;
+      --side: #202020;
+      --panel: #292929;
+      --hover: #363636;
+      --line: #454545;
+      --text: #ecebe8;
+      --muted: #a5a5a1;
+      --accent: #d8d7d2;
+      --accent-text: #202020;
+      --photo: none;
+      --ease: cubic-bezier(.22, 1, .36, 1);
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    html, body { width: 100%; height: 100%; margin: 0; }
+
+    body {
+      color: var(--text);
+      background: var(--bg);
+      font: 14px/1.5 Inter, ui-sans-serif, -apple-system,
+        BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .5; }
+
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .app {
+      display: flex;
+      width: 100%;
+      height: 100dvh;
+      min-height: 450px;
+      overflow: hidden;
+    }
+
+    .rail {
+      position: relative;
+      z-index: 4;
+      width: 58px;
+      flex: 0 0 58px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 17px 0;
+      background: var(--rail);
+      border-right: 1px solid var(--line);
+    }
+
+    .rail-brand { margin: 0 0 18px; font: 26px Georgia, serif; }
+    .rail-spacer { flex: 1; }
+
+    .icon {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      color: var(--text);
+      background: transparent;
+      border: 0;
+      border-radius: 9px;
+      font-size: 19px;
+      transition: background .2s, transform .2s var(--ease);
+    }
+
+    .icon:hover { background: var(--hover); transform: translateY(-1px); }
+    .icon:active { transform: scale(.92); }
+
+    .sidebar {
+      width: 0;
+      flex: 0 0 auto;
+      overflow: hidden;
+      background: var(--side);
+      border-right: 0 solid var(--line);
+      transition:
+        width .43s var(--ease),
+        border-width .43s var(--ease);
+    }
+
+    .app.sidebar-open .sidebar {
+      width: 258px;
+      border-right-width: 1px;
+    }
+
+    .sidebar-inner {
+      width: 257px;
+      height: 100%;
+      padding: 23px 13px;
+      overflow-y: auto;
+      opacity: 0;
+      transform: translateX(-12px);
+      transition: opacity .25s, transform .43s var(--ease);
+    }
+
+    .app.sidebar-open .sidebar-inner {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .side-title { padding: 0 10px 17px; font-weight: 600; }
+
+    .side-label {
+      margin: 25px 10px 8px;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .field {
+      width: 100%;
+      padding: 10px 12px;
+      color: var(--text);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      outline: none;
+    }
+
+    .field::placeholder { color: var(--muted); }
+    .field:focus { border-color: var(--accent); }
+
+    .chat-row {
+      display: flex;
+      align-items: center;
+      border-radius: 9px;
+      transition: background .2s;
+    }
+
+    .chat-row:hover, .chat-row.active { background: var(--hover); }
+
+    .chat-name {
+      flex: 1;
+      min-width: 0;
+      padding: 10px;
+      overflow: hidden;
+      color: var(--text);
+      background: transparent;
+      border: 0;
+      text-align: left;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .chat-delete {
+      padding: 5px 10px;
+      color: var(--muted);
+      background: transparent;
+      border: 0;
+      font-size: 19px;
+      opacity: 0;
+    }
+
+    .chat-row:hover .chat-delete,
+    .chat-delete:focus-visible { opacity: 1; }
+
+    .empty-list { padding: 10px; color: var(--muted); font-size: 12px; }
+
+    .main {
+      position: relative;
+      isolation: isolate;
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+    }
+
+    .main::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background-image: linear-gradient(#111a, #111c), var(--photo);
+      background-size: cover;
+      background-position: center;
+      pointer-events: none;
+    }
+
+    .main > * { position: relative; z-index: 1; }
+
+    .topbar {
+      height: 68px;
+      flex: 0 0 68px;
+      display: flex;
+      align-items: center;
+      padding: 0 31px;
+    }
+
+    .brand { font: 27px Georgia, serif; letter-spacing: -.055em; }
+
+    .workspace {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .welcome {
+      flex: 1;
+      min-height: 145px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      text-align: center;
+      animation: enter .4s var(--ease) both;
+    }
+
+    .eyebrow {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .12em;
+    }
+
+    .hero {
+      margin: 11px 0 0;
+      font: normal clamp(37px, 5vw, 60px)/1.2 Georgia, serif;
+      letter-spacing: -.055em;
+    }
+
+    .hero em {
+      padding: 0 .14em .06em;
+      color: var(--accent-text);
+      background: var(--accent);
+      font-weight: normal;
+    }
+
+    .subtitle { margin: 18px 0 0; color: var(--muted); }
+
+    .conversation {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 10px max(20px, calc((100% - 790px)/2)) 25px;
+    }
+
+    .conversation.switching { animation: enter .3s var(--ease) both; }
+    .message { margin: 20px 0 30px; }
+
+    .message.user {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .message-label {
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .bubble {
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
+    .user .bubble {
+      max-width: min(88%, 680px);
+      padding: 11px 15px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 15px;
+    }
+
+    .assistant .bubble { line-height: 1.75; }
+
+    .file-chips {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .file-chip {
+      max-width: 220px;
+      overflow: hidden;
+      padding: 4px 8px;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      font-size: 11px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .retry, .secondary {
+      padding: 8px 11px;
+      color: var(--text);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .composer-zone {
+      width: min(760px, calc(100% - 36px));
+      margin: 0 auto;
+      padding-bottom: 19px;
+      transition: width .43s var(--ease);
+    }
+
+    .workspace.is-empty .composer-zone {
+      margin-bottom: auto;
+      padding-bottom: 0;
+    }
+
+    .composer {
+      padding: 13px 13px 9px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      box-shadow: 0 15px 40px #0004;
+      backdrop-filter: blur(16px);
+      transition: border-color .22s, box-shadow .22s;
+    }
+
+    .composer:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 17px 45px #0006;
+    }
+
+    #prompt {
+      width: 100%;
+      min-height: 68px;
+      max-height: 200px;
+      padding: 4px 6px;
+      resize: none;
+      color: var(--text);
+      background: transparent;
+      border: 0;
+      outline: none;
+      line-height: 1.55;
+    }
+
+    #prompt::placeholder { color: var(--muted); }
+
+    .attachments {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 0 4px 8px;
+    }
+
+    .attachment {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 220px;
+      padding: 5px 7px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: 11px;
+    }
+
+    .attachment span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .attachment button {
+      color: var(--text);
+      background: transparent;
+      border: 0;
+    }
+
+    .composer-bottom {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .attach, .model-button, .send {
+      height: 35px;
+      border-radius: 8px;
+    }
+
+    .attach {
+      width: 35px;
+      color: var(--text);
+      background: transparent;
+      border: 0;
+      font-size: 23px;
+    }
+
+    .attach:hover { background: var(--hover); }
+
+    .model-wrap { position: relative; min-width: 0; }
+
+    .model-button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: min(320px, 50vw);
+      padding: 0 11px;
+      color: var(--text);
+      background: var(--hover);
+      border: 1px solid var(--line);
+      transition: border-color .2s, transform .2s var(--ease);
+    }
+
+    .model-button:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    #modelName {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .grow { flex: 1; }
+    .source { color: var(--muted); font-size: 11px; white-space: nowrap; }
+
+    .send {
+      width: 35px;
+      color: var(--accent-text);
+      background: var(--accent);
+      border: 0;
+      font-size: 20px;
+    }
+
+    .send.stop {
+      color: var(--text);
+      background: var(--hover);
+      font-size: 15px;
+    }
+
+    .hint {
+      margin-top: 10px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 11px;
+    }
+
+    .menu {
+      position: absolute;
+      bottom: 44px;
+      left: 0;
+      z-index: 8;
+      width: min(410px, calc(100vw - 85px));
+      max-height: min(550px, 72dvh);
+      overflow-y: auto;
+      padding: 9px;
+      background: var(--side);
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      box-shadow: 0 22px 55px #000b;
+      animation: menuEnter .25s var(--ease) both;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 8px;
+      overflow-x: auto;
+    }
+
+    .tab {
+      flex: 0 0 auto;
+      padding: 7px 10px;
+      color: var(--muted);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      font-size: 11px;
+    }
+
+    .tab.selected {
+      color: var(--accent-text);
+      background: var(--accent);
+    }
+
+    .menu-status {
+      padding: 8px 4px;
+      color: var(--muted);
+      font-size: 11px;
+      overflow-wrap: anywhere;
+    }
+
+    .model-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: 100%;
+      padding: 9px;
+      color: var(--text);
+      background: transparent;
+      border: 0;
+      border-radius: 8px;
+      text-align: left;
+      transition: background .2s, transform .2s var(--ease);
+    }
+
+    .model-item:hover {
+      background: var(--hover);
+      transform: translateX(2px);
+    }
+
+    .model-icon {
+      flex: 0 0 24px;
+      display: grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+    }
+
+    .model-info { flex: 1; min-width: 0; }
+
+    .model-title, .model-id {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .model-title { font-size: 12px; }
+    .model-id { color: var(--muted); font-size: 10px; }
+    .badge { color: var(--accent); font-size: 10px; white-space: nowrap; }
+
+    .more {
+      width: 100%;
+      margin-top: 6px;
+      padding: 8px;
+      color: var(--text);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      background: #000b;
+      animation: fadeIn .2s ease both;
+    }
+
+    .modal {
+      width: min(100%, 540px);
+      max-height: 90dvh;
+      overflow-y: auto;
+      padding: 26px;
+      background: var(--side);
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      box-shadow: 0 30px 80px #000a;
+      animation: menuEnter .3s var(--ease) both;
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .modal h2 { margin: 0; font: normal 30px Georgia, serif; }
+
+    .modal p, .help {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .group { margin-top: 17px; }
+    .group > label { display: block; margin-bottom: 7px; font-size: 12px; }
+
+    .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .swatch {
+      width: 38px;
+      height: 38px;
+      border: 2px solid #777;
+      border-radius: 10px;
+    }
+
+    .swatch.active {
+      border-color: white;
+      outline: 2px solid var(--accent);
+    }
+
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .check input { accent-color: var(--accent); }
+
+    .primary {
+      padding: 10px 16px;
+      color: var(--accent-text);
+      background: var(--accent);
+      border: 0;
+      border-radius: 9px;
+      font-weight: 600;
+    }
+
+    .save-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 22px;
+    }
+
+    .notice {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 23px;
+      left: 50%;
+      z-index: 30;
+      transform: translateX(-50%);
+      max-width: min(580px, calc(100% - 30px));
+      padding: 11px 14px;
+      color: white;
+      background: #393939;
+      border: 1px solid #777;
+      border-radius: 9px;
+      box-shadow: 0 12px 30px #0008;
+    }
+
+    @keyframes enter {
+      from { opacity: 0; transform: translateY(9px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes menuEnter {
+      from { opacity: 0; transform: translateY(9px) scale(.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @media (max-width: 700px) {
+      .rail { width: 49px; flex-basis: 49px; }
+
+      .sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 49px;
+        z-index: 3;
+        box-shadow: 15px 0 40px #0007;
+      }
+
+      .topbar { padding: 0 16px; }
+      .conversation { padding-left: 16px; padding-right: 16px; }
+      .composer-zone { width: calc(100% - 24px); padding-bottom: 10px; }
+      .source, .hint { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <nav class="rail">
+      <div class="rail-brand">E</div>
+      <button class="icon" id="toggleSidebar" aria-label="Chats">☷</button>
+      <button class="icon" id="newChat" aria-label="New chat">✎</button>
+      <div class="rail-spacer"></div>
+      <button class="icon" id="openSettings" aria-label="Settings">⚙</button>
+    </nav>
+
+    <aside class="sidebar">
+      <div class="sidebar-inner">
+        <div class="side-title" data-i18n="space"></div>
+        <input id="chatSearch" class="field" type="search" data-placeholder="search">
+        <div class="side-label" data-i18n="history"></div>
+        <div id="chatList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="brand">Extend</div>
+      </header>
+
+      <div class="workspace is-empty" id="workspace">
+        <div class="welcome" id="welcome">
+          <div class="eyebrow" data-i18n="eyebrow"></div>
+          <h1 class="hero">
+            <span data-i18n="hero1"></span>
+            <em data-i18n="hero2"></em>
+          </h1>
+          <p class="subtitle" data-i18n="subtitle"></p>
+        </div>
+
+        <div class="conversation" id="conversation" role="log"></div>
+
+        <div class="composer-zone">
+          <div class="composer">
+            <textarea id="prompt" rows="2" data-placeholder="prompt"></textarea>
+            <div class="attachments" id="attachments"></div>
+
+            <div class="composer-bottom">
+              <button class="attach" id="attach" aria-label="Attach">+</button>
+
+              <input id="files" type="file" multiple hidden
+                accept="image/png,image/jpeg,image/webp,.txt,.md,.csv,.json,.js,.ts,.py,.html,.css,.pdf">
+
+              <div class="model-wrap" id="modelWrap">
+                <button class="model-button" id="modelButton" aria-expanded="false">
+                  <span id="modelName"></span><span>⌄</span>
+                </button>
+
+                <div class="menu" id="modelMenu" hidden>
+                  <div class="tabs" id="tabs"></div>
+                  <input id="modelSearch" class="field" type="search">
+                  <div class="menu-status" id="modelStatus"></div>
+                  <div id="modelItems"></div>
+                  <button class="more" id="showMore" hidden></button>
+                </div>
+              </div>
+
+              <div class="grow"></div>
+              <span class="source" id="source"></span>
+              <button class="send" id="send" aria-label="Send">↑</button>
+            </div>
+          </div>
+
+          <div class="hint" data-i18n="hint"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="backdrop" id="settingsBackdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal-head">
+        <h2 id="settingsTitle" data-i18n="settings"></h2>
+        <button class="icon" id="closeSettings" aria-label="Close">×</button>
+      </div>
+
+      <p data-i18n="settingsIntro"></p>
+
+      <div class="group">
+        <label for="language" data-i18n="language"></label>
+        <select id="language" class="field">
+          <option value="auto" data-i18n="automatic"></option>
+          <option value="ru">Русский</option>
+          <option value="en">English</option>
+          <option value="es">Español</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <label data-i18n="theme"></label>
+        <div class="swatches" id="swatches"></div>
+      </div>
+
+      <div class="group">
+        <label data-i18n="photo"></label>
+        <div class="actions">
+          <button id="choosePhoto" class="secondary" data-i18n="choosePhoto"></button>
+          <button id="removePhoto" class="secondary" data-i18n="removePhoto"></button>
+          <input id="photoFile" type="file" hidden
+            accept="image/png,image/jpeg,image/webp">
+        </div>
+        <div class="help" data-i18n="photoHint"></div>
+      </div>
+
+      <div class="group">
+        <label for="keyProvider" data-i18n="accessProvider"></label>
+        <select class="field" id="keyProvider">
+          <option value="huggingface">Hugging Face</option>
+          <option value="gemini">Google Gemini</option>
+          <option value="custom" data-i18n="customProvider"></option>
+        </select>
+      </div>
+
+      <div class="group" id="customFields" hidden>
+        <label for="customEndpoint" data-i18n="customEndpoint"></label>
+        <input id="customEndpoint" class="field" type="url"
+          spellcheck="false" placeholder="https://example.com/v1/chat/completions">
+
+        <label for="customModel" data-i18n="customModel"
+          style="margin-top:15px"></label>
+        <input id="customModel" class="field" spellcheck="false"
+          placeholder="model-id">
+
+        <label class="check" style="margin-top:15px">
+          <input id="customVision" type="checkbox">
+          <span data-i18n="customVision"></span>
+        </label>
+
+        <div class="help" data-i18n="customHelp"></div>
+      </div>
+
+      <div class="group">
+        <label for="personalKey" data-i18n="personalKey"></label>
+        <input class="field" id="personalKey" type="password" autocomplete="off">
+        <div class="help" data-i18n="keyHint"></div>
+      </div>
+
+      <p class="notice" data-i18n="accessHint"></p>
+
+      <div class="save-row">
+        <button id="saveSettings" class="primary" data-i18n="save"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <script type="module">
+    const $ = id => document.getElementById(id);
+
+    const WEBLLM_URL = "https://esm.run/@mlc-ai/web-llm";
+    const DB_NAME = "extend-data-v2";
+    const SETTINGS_KEY = "extend-settings-no-openrouter-v1";
+    const ACTIVE_KEY = "extend-active-chat-v1";
+    const PROVIDERS = ["local", "huggingface", "gemini", "custom"];
+
+    const words = {
+      ru: {
+        space: "Ваше пространство",
+        search: "Найти диалог…",
+        history: "История",
+        noChats: "Здесь появятся диалоги",
+        noResults: "Ничего не найдено",
+        newChat: "Новый диалог",
+        delete: "Удалить диалог?",
+        you: "Вы",
+        eyebrow: "ПРОСТРАНСТВО ДЛЯ МЫСЛИ",
+        hero1: "Думай",
+        hero2: "шире.",
+        subtitle: "Любая идея начинается с хорошего вопроса.",
+        prompt: "Спросите о чём угодно…",
+        hint: "Enter — отправить · Shift + Enter — новая строка",
+        settings: "Настройки",
+        settingsIntro:
+          "Локальные модели работают без ключа. Подключите Hugging Face, Gemini или свой OpenAI-совместимый API.",
+        language: "Язык",
+        automatic: "Автоматически — язык системы",
+        theme: "Цветовая тема",
+        photo: "Фон по фотографии",
+        choosePhoto: "Выбрать фото",
+        removePhoto: "Убрать фото",
+        photoHint: "Фото уменьшается перед сохранением и остаётся на этом устройстве.",
+        accessProvider: "Подключить провайдера",
+        customProvider: "Свой API",
+        customEndpoint: "Полный адрес chat completions",
+        customModel: "ID модели",
+        customVision: "Модель поддерживает изображения",
+        customHelp:
+          "Укажите полный адрес /chat/completions. Запрос пойдёт напрямую из браузера; сервер API должен разрешать CORS.",
+        personalKey: "API-ключ",
+        keyHint:
+          "Сохраняется на этом устройстве. Для своего локального API поле можно оставить пустым.",
+        accessHint:
+          "Ключи хранятся в браузере без дополнительного шифрования. Не используйте это на общем компьютере. Доступность облачных моделей зависит от провайдера и региона.",
+        save: "Сохранить",
+        saved: "Настройки сохранены",
+        searchModels: "Поиск модели…",
+        more: "Показать ещё",
+        retryCatalog: "Повторить загрузку",
+        models: "моделей",
+        loading: "Загрузка каталога…",
+        downloaded: "✓ Загружено",
+        noModels: "Модели не найдены",
+        chooseModel: "Выберите модель",
+        local: "На устройстве",
+        preparing: "Подготовка модели",
+        imageLocal: "Локальные модели в этом приложении пока принимают только текст.",
+        imageUnsupported: "Для этой модели не подтверждена поддержка изображений.",
+        webgpu: "Для локальной модели нужен WebGPU и совместимый браузер.",
+        failed: "Ошибка",
+        retry: "↻ Повторить запрос",
+        stopped: "[Генерация остановлена]",
+        busy: "Дождитесь завершения ответа или остановите генерацию.",
+        fileType: "Поддерживаются текст, PDF и PNG/JPEG/WebP.",
+        fileSize: "Файл слишком большой.",
+        fileLimit: "Максимум пять вложений.",
+        pdfEmpty: "Не удалось извлечь текст из PDF. Возможно, это скан.",
+        photoError: "Не удалось обработать или сохранить фото.",
+        photoSize: "Фото должно быть меньше 12 МБ.",
+        saveError: "Не удалось сохранить данные браузера.",
+        emptyAnswer: "Модель вернула пустой ответ.",
+        keyNeeded: "Добавьте ключ этого провайдера в настройках.",
+        invalidEndpoint: "Укажите полный адрес API с http:// или https://.",
+        invalidCustomModel: "Укажите ID своей модели.",
+        customNotConfigured: "Сначала настройте свой API."
+      },
+
+      en: {
+        space: "Your space",
+        search: "Search chats…",
+        history: "History",
+        noChats: "Your chats will appear here",
+        noResults: "Nothing found",
+        newChat: "New chat",
+        delete: "Delete this chat?",
+        you: "You",
+        eyebrow: "A SPACE TO THINK",
+        hero1: "Think",
+        hero2: "bigger.",
+        subtitle: "Every idea starts with a good question.",
+        prompt: "Ask anything…",
+        hint: "Enter to send · Shift + Enter for a new line",
+        settings: "Settings",
+        settingsIntro:
+          "Local models work without a key. Connect Hugging Face, Gemini, or your own OpenAI-compatible API.",
+        language: "Language",
+        automatic: "Automatic — system language",
+        theme: "Color theme",
+        photo: "Photo background",
+        choosePhoto: "Choose photo",
+        removePhoto: "Remove photo",
+        photoHint: "The photo is resized before saving and stays on this device.",
+        accessProvider: "Connect provider",
+        customProvider: "Custom API",
+        customEndpoint: "Full chat completions URL",
+        customModel: "Model ID",
+        customVision: "Model supports images",
+        customHelp:
+          "Enter the full /chat/completions URL. Requests go directly from your browser; the API must allow CORS.",
+        personalKey: "API key",
+        keyHint: "Saved on this device. Optional for a local custom API.",
+        accessHint:
+          "Keys are stored in your browser without extra encryption. Avoid shared devices. Cloud availability depends on the provider and region.",
+        save: "Save",
+        saved: "Settings saved",
+        searchModels: "Search models…",
+        more: "Show more",
+        retryCatalog: "Retry loading",
+        models: "models",
+        loading: "Loading catalog…",
+        downloaded: "✓ Downloaded",
+        noModels: "No models found",
+        chooseModel: "Choose a model",
+        local: "On-device",
+        preparing: "Preparing model",
+        imageLocal: "Local models in this app currently accept text only.",
+        imageUnsupported: "Image support is not confirmed for this model.",
+        webgpu: "Local models require WebGPU and a compatible browser.",
+        failed: "Error",
+        retry: "↻ Retry request",
+        stopped: "[Generation stopped]",
+        busy: "Wait for the answer or stop generation first.",
+        fileType: "Supported: text, PDF, and PNG/JPEG/WebP.",
+        fileSize: "File too large.",
+        fileLimit: "Maximum five attachments.",
+        pdfEmpty: "Could not extract text from this PDF. It may be a scan.",
+        photoError: "Could not process or save the photo.",
+        photoSize: "Photo must be smaller than 12 MB.",
+        saveError: "Could not save browser data.",
+        emptyAnswer: "The model returned an empty response.",
+        keyNeeded: "Add this provider's key in Settings.",
+        invalidEndpoint: "Enter a full API URL starting with http:// or https://.",
+        invalidCustomModel: "Enter your model ID.",
+        customNotConfigured: "Configure your custom API first."
+      },
+
+      es: {
+        space: "Tu espacio",
+        search: "Buscar chats…",
+        history: "Historial",
+        noChats: "Tus chats aparecerán aquí",
+        noResults: "Sin resultados",
+        newChat: "Nuevo chat",
+        delete: "¿Eliminar este chat?",
+        you: "Tú",
+        eyebrow: "UN ESPACIO PARA PENSAR",
+        hero1: "Piensa",
+        hero2: "más allá.",
+        subtitle: "Toda idea empieza con una buena pregunta.",
+        prompt: "Pregunta lo que quieras…",
+        hint: "Enter para enviar · Shift + Enter para otra línea",
+        settings: "Ajustes",
+        settingsIntro:
+          "Los modelos locales funcionan sin clave. Conecta Hugging Face, Gemini o tu API compatible con OpenAI.",
+        language: "Idioma",
+        automatic: "Automático — idioma del sistema",
+        theme: "Tema de color",
+        photo: "Fondo con foto",
+        choosePhoto: "Elegir foto",
+        removePhoto: "Quitar foto",
+        photoHint: "La foto se reduce antes de guardarla y permanece en este dispositivo.",
+        accessProvider: "Conectar proveedor",
+        customProvider: "API propia",
+        customEndpoint: "URL completa de chat completions",
+        customModel: "ID del modelo",
+        customVision: "El modelo admite imágenes",
+        customHelp:
+          "Introduce la URL completa de /chat/completions. Las solicitudes salen del navegador; la API debe permitir CORS.",
+        personalKey: "Clave API",
+        keyHint: "Se guarda en este dispositivo. Es opcional para una API local.",
+        accessHint:
+          "Las claves se guardan en el navegador sin cifrado adicional. Evita equipos compartidos. La disponibilidad depende del proveedor y la región.",
+        save: "Guardar",
+        saved: "Ajustes guardados",
+        searchModels: "Buscar modelos…",
+        more: "Mostrar más",
+        retryCatalog: "Reintentar carga",
+        models: "modelos",
+        loading: "Cargando catálogo…",
+        downloaded: "✓ Descargado",
+        noModels: "No se encontraron modelos",
+        chooseModel: "Elige un modelo",
+        local: "En el dispositivo",
+        preparing: "Preparando modelo",
+        imageLocal: "Los modelos locales de esta aplicación solo aceptan texto por ahora.",
+        imageUnsupported: "No se ha confirmado compatibilidad con imágenes.",
+        webgpu: "Los modelos locales necesitan WebGPU y un navegador compatible.",
+        failed: "Error",
+        retry: "↻ Reintentar",
+        stopped: "[Generación detenida]",
+        busy: "Espera la respuesta o detén la generación.",
+        fileType: "Se admiten texto, PDF y PNG/JPEG/WebP.",
+        fileSize: "Archivo demasiado grande.",
+        fileLimit: "Máximo cinco archivos.",
+        pdfEmpty: "No se pudo extraer texto del PDF. Quizá sea un escaneo.",
+        photoError: "No se pudo procesar o guardar la foto.",
+        photoSize: "La foto debe ocupar menos de 12 MB.",
+        saveError: "No se pudieron guardar los datos.",
+        emptyAnswer: "El modelo devolvió una respuesta vacía.",
+        keyNeeded: "Añade la clave del proveedor en Ajustes.",
+        invalidEndpoint: "Introduce una URL completa con http:// o https://.",
+        invalidCustomModel: "Introduce el ID de tu modelo.",
+        customNotConfigured: "Configura primero tu API."
+      }
+    };
+
+    const themes = {
+      graphite: [
+        "#191919", "#1b1b1b", "#202020", "#292929",
+        "#363636", "#454545", "#d8d7d2", "#202020"
+      ],
+      slate: [
+        "#171b21", "#1b2028", "#202630", "#2b3440",
+        "#364150", "#48515d", "#b8c8d9", "#17202b"
+      ],
+      violet: [
+        "#1b1921", "#211d29", "#24202d", "#302a39",
+        "#3b3446", "#514759", "#d6c2e9", "#241c2e"
+      ],
+      forest: [
+        "#18201d", "#1b2420", "#202b26", "#29372f",
+        "#35463c", "#465a4c", "#bfdbc5", "#19261d"
+      ]
+    };
+
+    const themeNames = [
+      "--bg", "--rail", "--side", "--panel",
+      "--hover", "--line", "--accent", "--accent-text"
+    ];
+
+    function readSettings() {
+      try {
+        return {
+          language: "auto",
+          theme: "graphite",
+          provider: "local",
+          model: "",
+          ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}")
+        };
+      } catch {
+        return {
+          language: "auto",
+          theme: "graphite",
+          provider: "local",
+          model: ""
+        };
+      }
+    }
+
+    let settings = readSettings();
+
+    if (!PROVIDERS.includes(settings.provider)) {
+      settings.provider = "local";
+      settings.model = "";
+    }
+
+    let db;
+    let chats = [];
+    let activeId = null;
+    let currentRun = null;
+    let menuTab = settings.provider;
+    let menuLimit = 50;
+    let photoURL = null;
+    let toastTimer;
+    let draftSaveTimer;
+    let keyFormProvider = "huggingface";
+
+    const connections = {
+      huggingface: { key: "" },
+      gemini: { key: "" },
+      custom: {
+        key: "",
+        endpoint: "",
+        model: "",
+        vision: false
+      }
+    };
+
+    let formDrafts = structuredClone(connections);
+
+    let webllm;
+    let engine;
+    let engineModel = "";
+    let enginePromise = null;
+
+    const catalogs = new Map();
+    const catalogRequests = new Map();
+    const catalogErrors = new Map();
+    const downloaded = new Map();
+    const checkingCache = new Set();
+
+    function language() {
+      const system =
+        (navigator.languages?.[0] || navigator.language || "en")
+          .split("-")[0].toLowerCase();
+
+      const selected =
+        settings.language === "auto"
+          ? system
+          : settings.language;
+
+      return words[selected] ? selected : "en";
+    }
+
+    function t(key) {
+      return words[language()][key] || words.en[key] || key;
+    }
+
+    function notify(message) {
+      $("toast").textContent = message;
+      $("toast").hidden = false;
+
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        $("toast").hidden = true;
+      }, 6500);
+    }
+
+    function persistSettings() {
+      try {
+        localStorage.setItem(
+          SETTINGS_KEY,
+          JSON.stringify(settings)
+        );
+      } catch {
+        notify(t("saveError"));
+      }
+    }
+
+    function persistActiveId() {
+      try {
+        localStorage.setItem(ACTIVE_KEY, activeId || "");
+      } catch {
+        notify(t("saveError"));
+      }
+    }
+
+    function applyTheme() {
+      const colors = themes[settings.theme] || themes.graphite;
+
+      themeNames.forEach((name, index) => {
+        document.documentElement.style.setProperty(name, colors[index]);
+      });
+
+      const box = $("swatches");
+      box.replaceChildren();
+
+      for (const [name, values] of Object.entries(themes)) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className =
+          "swatch" + (settings.theme === name ? " active" : "");
+        button.title = name;
+        button.ariaLabel = name;
+        button.style.background =
+          `linear-gradient(135deg,${values[0]} 50%,${values[6]} 50%)`;
+
+        button.onclick = () => {
+          settings.theme = name;
+          persistSettings();
+          applyTheme();
+        };
+
+        box.append(button);
+      }
+    }
+
+    function applyLanguage() {
+      document.documentElement.lang = language();
+
+      document.querySelectorAll("[data-i18n]").forEach(node => {
+        node.textContent = t(node.dataset.i18n);
+      });
+
+      document.querySelectorAll("[data-placeholder]").forEach(node => {
+        node.placeholder = t(node.dataset.placeholder);
+      });
+
+      $("modelSearch").placeholder = t("searchModels");
+      $("showMore").textContent = t("more");
+
+      render();
+    }
+
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 2);
+
+        request.onupgradeneeded = () => {
+          if (!request.result.objectStoreNames.contains("data")) {
+            request.result.createObjectStore("data");
+          }
+        };
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    function dbGet(key) {
+      return new Promise((resolve, reject) => {
+        const request = db
+          .transaction("data", "readonly")
+          .objectStore("data")
+          .get(key);
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    function dbPut(key, value) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction("data", "readwrite");
+        tx.objectStore("data").put(value, key);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    function dbRemove(key) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction("data", "readwrite");
+        tx.objectStore("data").delete(key);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    let saveQueue = Promise.resolve();
+
+    function saveChats() {
+      if (!db) return Promise.resolve();
+
+      const snapshot = structuredClone(chats);
+
+      saveQueue = saveQueue
+        .catch(() => {})
+        .then(() => dbPut("chats", snapshot))
+        .catch(() => notify(t("saveError")));
+
+      return saveQueue;
+    }
+
+    function scheduleDraftSave() {
+      clearTimeout(draftSaveTimer);
+      draftSaveTimer = setTimeout(saveChats, 250);
+    }
+
+    function activeChat() {
+      return chats.find(chat => chat.id === activeId);
+    }
+
+    function normalizeChat(chat) {
+      chat.messages = Array.isArray(chat.messages)
+        ? chat.messages
+        : [];
+
+      chat.draft = typeof chat.draft === "string"
+        ? chat.draft
+        : "";
+
+      chat.draftAttachments =
+        Array.isArray(chat.draftAttachments)
+          ? chat.draftAttachments
+          : [];
+
+      return chat;
+    }
+
+    function makeEmptyChat() {
+      const chat = {
+        id: crypto.randomUUID(),
+        title: t("newChat"),
+        messages: [],
+        draft: "",
+        draftAttachments: []
+      };
+
+      chats.unshift(chat);
+      activeId = chat.id;
+      persistActiveId();
+      saveChats();
+
+      return chat;
+    }
+
+    /*
+      Пока существует хотя бы один диалог без отправленных сообщений,
+      другой пустой диалог не создаётся. Черновик этому не мешает.
+    */
+    function existingEmptyChat() {
+      return chats.find(chat => chat.messages.length === 0);
+    }
+
+    function ensureChat() {
+      return activeChat() || existingEmptyChat() || makeEmptyChat();
+    }
+
+    function captureDraft() {
+      const chat = activeChat();
+      if (chat) chat.draft = $("prompt").value;
+    }
+
+    function restoreDraft() {
+      $("prompt").value = activeChat()?.draft || "";
+      renderAttachments();
+    }
+
+    function animateConversation() {
+      const box = $("conversation");
+      box.classList.remove("switching");
+      void box.offsetWidth;
+      box.classList.add("switching");
+    }
+
+    function switchChat(id) {
+      if (id === activeId) return;
+
+      captureDraft();
+      clearTimeout(draftSaveTimer);
+      saveChats();
+
+      activeId = id;
+      persistActiveId();
+
+      restoreDraft();
+      render();
+      animateConversation();
+
+      if (innerWidth <= 700) {
+        $("app").classList.remove("sidebar-open");
+      }
+    }
+
+    function newChat() {
+      const empty = existingEmptyChat();
+
+      if (empty) {
+        switchChat(empty.id);
+        $("prompt").focus();
+        return;
+      }
+
+      captureDraft();
+      clearTimeout(draftSaveTimer);
+      saveChats();
+
+      makeEmptyChat();
+      restoreDraft();
+      render();
+      animateConversation();
+      $("prompt").focus();
+    }
+
+    function providerModels(provider) {
+      if (provider === "custom") {
+        const custom = connections.custom;
+        return custom.model
+          ? [{
+              id: custom.model,
+              name: custom.model,
+              image: custom.vision
+            }]
+          : [];
+      }
+
+      return catalogs.get(provider) || [];
+    }
+
+    function modelName(id, provider) {
+      if (!id) return t("chooseModel");
+
+      return providerModels(provider)
+        .find(model => model.id === id)
+        ?.name || id.replace(/-q4f16_1-MLC$/i, "");
+    }
+
+    function stopRun() {
+      if (!currentRun) return;
+
+      currentRun.cancelled = true;
+      currentRun.controller.abort();
+
+      try {
+        engine?.interruptGenerate?.();
+      } catch {}
+    }
+
+    function renderSidebar() {
+      const box = $("chatList");
+      box.replaceChildren();
+
+      const query =
+        $("chatSearch").value.trim().toLocaleLowerCase();
+
+      const visible = chats.filter(chat =>
+        chat.title.toLocaleLowerCase().includes(query)
+      );
+
+      if (!visible.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-list";
+        empty.textContent =
+          query ? t("noResults") : t("noChats");
+        box.append(empty);
+      }
+
+      for (const chat of visible) {
+        const row = document.createElement("div");
+        row.className =
+          "chat-row" + (chat.id === activeId ? " active" : "");
+
+        const open = document.createElement("button");
+        open.className = "chat-name";
+        open.textContent = chat.title;
+        open.title = chat.title;
+        open.onclick = () => switchChat(chat.id);
+
+        const remove = document.createElement("button");
+        remove.className = "chat-delete";
+        remove.textContent = "×";
+        remove.title = t("delete");
+
+        remove.onclick = () => {
+          if (!confirm(t("delete"))) return;
+
+          if (currentRun?.chatId === chat.id) {
+            stopRun();
+          }
+
+          captureDraft();
+          chats = chats.filter(item => item.id !== chat.id);
+
+          if (activeId === chat.id) {
+            activeId = chats[0]?.id || null;
+            persistActiveId();
+          }
+
+          if (!activeId) {
+            makeEmptyChat();
+          }
+
+          saveChats();
+          restoreDraft();
+          render();
+          animateConversation();
+        };
+
+        row.append(open, remove);
+        box.append(row);
+      }
+    }
+
+    function renderMessages() {
+      const box = $("conversation");
+      box.replaceChildren();
+
+      const chat = activeChat();
+      const filled = !!chat?.messages.length;
+
+      $("welcome").hidden = filled;
+      box.hidden = !filled;
+      $("workspace").classList.toggle("is-empty", !filled);
+
+      if (!filled) return;
+
+      for (const message of chat.messages) {
+        const row = document.createElement("div");
+        row.className = "message " + message.role;
+
+        const label = document.createElement("div");
+        label.className = "message-label";
+        label.textContent =
+          message.role === "user"
+            ? t("you")
+            : "Extend · " +
+              modelName(message.model, message.provider);
+
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+        bubble.textContent =
+          message.text ||
+          (message.role === "assistant" ? "…" : "");
+
+        if (message.id) {
+          bubble.dataset.messageId = message.id;
+        }
+
+        row.append(label, bubble);
+
+        if (message.attachments?.length) {
+          const files = document.createElement("div");
+          files.className = "file-chips";
+
+          for (const file of message.attachments) {
+            const chip = document.createElement("span");
+            chip.className = "file-chip";
+            chip.textContent =
+              (file.kind === "image" ? "▧ " : "▤ ") +
+              file.name;
+            files.append(chip);
+          }
+
+          row.append(files);
+        }
+
+        box.append(row);
+      }
+
+      if (
+        currentRun?.chatId !== chat.id &&
+        chat.messages.at(-1)?.role === "user"
+      ) {
+        const retry = document.createElement("button");
+        retry.className = "retry";
+        retry.textContent = t("retry");
+        retry.onclick = answer;
+        box.append(retry);
+      }
+
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function renderAttachments() {
+      const box = $("attachments");
+      box.replaceChildren();
+
+      const attachments =
+        activeChat()?.draftAttachments || [];
+
+      attachments.forEach((file, index) => {
+        const item = document.createElement("div");
+        item.className = "attachment";
+
+        const name = document.createElement("span");
+        name.textContent =
+          (file.kind === "image" ? "▧ " : "▤ ") +
+          file.name;
+
+        const remove = document.createElement("button");
+        remove.textContent = "×";
+
+        remove.onclick = () => {
+          attachments.splice(index, 1);
+          saveChats();
+          renderAttachments();
+        };
+
+        item.append(name, remove);
+        box.append(item);
+      });
+    }
+
+    function renderSelectedModel() {
+      $("modelName").textContent =
+        modelName(settings.model, settings.provider);
+
+      $("source").textContent =
+        settings.provider === "local"
+          ? t("local")
+          : settings.provider === "gemini"
+            ? "Gemini"
+            : settings.provider === "custom"
+              ? t("customProvider")
+              : "Hugging Face";
+    }
+
+    function renderMenu() {
+      const tabs = $("tabs");
+      tabs.replaceChildren();
+
+      const names = {
+        local: t("local"),
+        huggingface: "Hugging Face",
+        gemini: "Gemini",
+        custom: t("customProvider")
+      };
+
+      for (const provider of PROVIDERS) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className =
+          "tab" + (provider === menuTab ? " selected" : "");
+        button.textContent = names[provider];
+
+        button.onclick = () => {
+          menuTab = provider;
+          menuLimit = 50;
+          $("modelSearch").value = "";
+
+          renderMenu();
+
+          if (provider !== "custom") {
+            loadCatalog(provider).catch(() => {});
+          }
+        };
+
+        tabs.append(button);
+      }
+
+      const query =
+        $("modelSearch").value.trim().toLocaleLowerCase();
+
+      const models = providerModels(menuTab).filter(model =>
+        !query ||
+        model.id.toLocaleLowerCase().includes(query) ||
+        model.name.toLocaleLowerCase().includes(query)
+      );
+
+      const status = $("modelStatus");
+
+      if (catalogRequests.has(menuTab)) {
+        status.textContent = t("loading");
+      } else if (catalogErrors.has(menuTab)) {
+        status.textContent = catalogErrors.get(menuTab);
+      } else if (
+        menuTab === "custom" &&
+        !connections.custom.model
+      ) {
+        status.textContent = t("customNotConfigured");
+      } else {
+        status.textContent = `${models.length} ${t("models")}`;
+      }
+
+      const items = $("modelItems");
+      items.replaceChildren();
+
+      if (catalogErrors.has(menuTab)) {
+        const retry = document.createElement("button");
+        retry.className = "more";
+        retry.textContent = t("retryCatalog");
+
+        retry.onclick = () => {
+          catalogs.delete(menuTab);
+          catalogErrors.delete(menuTab);
+          loadCatalog(menuTab).catch(() => {});
+        };
+
+        items.append(retry);
+      }
+
+      if (menuTab === "custom") {
+        const configure = document.createElement("button");
+        configure.className = "more";
+        configure.textContent = t("settings");
+        configure.onclick = () => {
+          closeMenu();
+          openSettings("custom");
+        };
+        items.append(configure);
+      }
+
+      if (
+        !models.length &&
+        menuTab !== "custom" &&
+        !catalogRequests.has(menuTab) &&
+        !catalogErrors.has(menuTab)
+      ) {
+        const empty = document.createElement("div");
+        empty.className = "empty-list";
+        empty.textContent = t("noModels");
+        items.append(empty);
+      }
+
+      const visible = models.slice(0, menuLimit);
+      $("showMore").hidden = models.length <= menuLimit;
+
+      for (const model of visible) {
+        const row = document.createElement("button");
+        row.className = "model-item";
+
+        const icon = document.createElement("span");
+        icon.className = "model-icon";
+        icon.textContent =
+          menuTab === "local" ? "◇" : "✧";
+
+        const info = document.createElement("span");
+        info.className = "model-info";
+
+        const title = document.createElement("span");
+        title.className = "model-title";
+        title.textContent = model.name;
+
+        const id = document.createElement("span");
+        id.className = "model-id";
+        id.textContent = model.id;
+
+        info.append(title, id);
+
+        const badge = document.createElement("span");
+        badge.className = "badge";
+        badge.textContent =
+          menuTab === "local" && downloaded.get(model.id)
+            ? t("downloaded")
+            : "";
+
+        row.append(icon, info, badge);
+
+        row.onclick = () => {
+          settings.provider = menuTab;
+          settings.model = model.id;
+          persistSettings();
+
+          closeMenu();
+          renderSelectedModel();
+        };
+
+        items.append(row);
+      }
+
+      if (menuTab === "local") {
+        for (const model of visible) {
+          checkCache(model.id);
+        }
+      }
+    }
+
+    function render() {
+      renderSidebar();
+      renderMessages();
+      renderAttachments();
+      renderSelectedModel();
+      renderMenu();
+    }
+
+    async function checkCache(id) {
+      if (
+        !webllm?.hasModelInCache ||
+        downloaded.has(id) ||
+        checkingCache.has(id)
+      ) {
+        return;
+      }
+
+      checkingCache.add(id);
+
+      try {
+        downloaded.set(
+          id,
+          !!(await webllm.hasModelInCache(
+            id,
+            webllm.prebuiltAppConfig
+          ))
+        );
+      } catch {
+        // Не показываем отметку без подтверждения кэша.
+      } finally {
+        checkingCache.delete(id);
+
+        if (
+          !$("modelMenu").hidden &&
+          menuTab === "local"
+        ) {
+          renderMenu();
+        }
+      }
+    }
+
+    async function loadCatalog(provider) {
+      if (catalogs.has(provider)) return;
+
+      if (catalogRequests.has(provider)) {
+        return catalogRequests.get(provider);
+      }
+
+      catalogErrors.delete(provider);
+
+      const task = (async () => {
+        if (provider === "local") {
+          webllm ||= await import(WEBLLM_URL);
+
+          const entries =
+            webllm.prebuiltAppConfig?.model_list || [];
+
+          const models = entries
+            .filter(item => item.model_id)
+            .map(item => ({
+              id: item.model_id,
+              name: item.model_id.replace(
+                /-q4f16_1-MLC$/i,
+                ""
+              ),
+              image: false
+            }));
+
+          if (!models.length) {
+            throw new Error("Каталог WebLLM пуст.");
+          }
+
+          catalogs.set(provider, models);
+
+          if (
+            settings.provider === "local" &&
+            !models.some(item =>
+              item.id === settings.model
+            )
+          ) {
+            const preferred = models.find(item =>
+              /Qwen2\.5-0\.5B-Instruct-q4f16_1/i
+                .test(item.id)
+            );
+
+            settings.model =
+              (preferred || models[0]).id;
+
+            persistSettings();
+          }
+
+          return;
+        }
+
+        const key = connections[provider]?.key;
+
+        if (!key) {
+          throw new Error(t("keyNeeded"));
+        }
+
+        const response = await fetch(
+          `/api/catalog?provider=${encodeURIComponent(provider)}`,
+          {
+            headers: {
+              "x-provider-key": key
+            }
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || `HTTP ${response.status}`
+          );
+        }
+
+        if (!Array.isArray(data.models)) {
+          throw new Error(
+            "Сервер вернул некорректный каталог."
+          );
+        }
+
+        catalogs.set(provider, data.models);
+      })();
+
+      catalogRequests.set(provider, task);
+
+      if (
+        !$("modelMenu").hidden &&
+        menuTab === provider
+      ) {
+        renderMenu();
+      }
+
+      try {
+        await task;
+      } catch (error) {
+        catalogErrors.set(provider, error.message);
+        throw error;
+      } finally {
+        catalogRequests.delete(provider);
+        renderSelectedModel();
+
+        if (
+          !$("modelMenu").hidden &&
+          menuTab === provider
+        ) {
+          renderMenu();
+        }
+      }
+    }
+
+    function closeMenu() {
+      $("modelMenu").hidden = true;
+      $("modelButton").setAttribute("aria-expanded", "false");
+    }
+
+    function validEndpoint(value) {
+      try {
+        const url = new URL(value);
+
+        return ["http:", "https:"].includes(url.protocol) &&
+          !url.username &&
+          !url.password &&
+          !url.hash;
+      } catch {
+        return false;
+      }
+    }
+
+    function captureConnectionForm() {
+      const draft = formDrafts[keyFormProvider];
+      draft.key = $("personalKey").value.trim();
+
+      if (keyFormProvider === "custom") {
+        draft.endpoint = $("customEndpoint").value.trim();
+        draft.model = $("customModel").value.trim();
+        draft.vision = $("customVision").checked;
+      }
+    }
+
+    function showConnectionForm(provider) {
+      keyFormProvider = provider;
+      $("keyProvider").value = provider;
+      $("customFields").hidden = provider !== "custom";
+
+      const draft = formDrafts[provider];
+
+      $("personalKey").value = draft.key || "";
+
+      if (provider === "custom") {
+        $("customEndpoint").value = draft.endpoint || "";
+        $("customModel").value = draft.model || "";
+        $("customVision").checked = !!draft.vision;
+      }
+    }
+
+    function openSettings(provider) {
+      $("language").value = settings.language;
+      formDrafts = structuredClone(connections);
+
+      const choice =
+        provider && provider !== "local"
+          ? provider
+          : settings.provider !== "local"
+            ? settings.provider
+            : "huggingface";
+
+      showConnectionForm(choice);
+      $("settingsBackdrop").hidden = false;
+    }
+
+    function closeSettings() {
+      $("settingsBackdrop").hidden = true;
+    }
+
+    function readDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () =>
+          reject(new Error("FileReader"));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function extractPDF(file) {
+      const pdfjs = await import(
+        "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs"
+      );
+
+      pdfjs.GlobalWorkerOptions.workerSrc =
+        "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs";
+
+      const pdf = await pdfjs.getDocument({
+        data: await file.arrayBuffer()
+      }).promise;
+
+      const parts = [];
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+
+        parts.push(
+          content.items.map(item => item.str).join(" ")
+        );
+
+        if (parts.join("\n").length > 60_000) {
+          break;
+        }
+      }
+
+      return parts.join("\n\n").slice(0, 60_000);
+    }
+
+    async function attachFiles(files) {
+      const chat = ensureChat();
+
+      for (const file of files) {
+        try {
+          if (chat.draftAttachments.length >= 5) {
+            throw new Error(t("fileLimit"));
+          }
+
+          if (
+            ["image/png", "image/jpeg", "image/webp"]
+              .includes(file.type)
+          ) {
+            if (file.size > 3 * 1024 * 1024) {
+              throw new Error(t("fileSize"));
+            }
+
+            chat.draftAttachments.push({
+              name: file.name,
+              kind: "image",
+              value: await readDataURL(file)
+            });
+          } else if (
+            file.type === "application/pdf" ||
+            file.name.toLowerCase().endsWith(".pdf")
+          ) {
+            if (file.size > 8 * 1024 * 1024) {
+              throw new Error(t("fileSize"));
+            }
+
+            const value = await extractPDF(file);
+
+            if (!value.trim()) {
+              throw new Error(t("pdfEmpty"));
+            }
+
+            chat.draftAttachments.push({
+              name: file.name,
+              kind: "text",
+              value
+            });
+          } else if (
+            file.type.startsWith("text/") ||
+            /\.(txt|md|csv|json|js|ts|py|html|css)$/i
+              .test(file.name)
+          ) {
+            if (file.size > 500_000) {
+              throw new Error(t("fileSize"));
+            }
+
+            chat.draftAttachments.push({
+              name: file.name,
+              kind: "text",
+              value: (await file.text()).slice(0, 60_000)
+            });
+          } else {
+            throw new Error(t("fileType"));
+          }
+
+          await saveChats();
+        } catch (error) {
+          notify(`${file.name}: ${error.message}`);
+        }
+      }
+
+      if (activeId === chat.id) {
+        renderAttachments();
+      }
+    }
+
+    function messageContent(message, local) {
+      let content = message.text || "";
+
+      for (const file of message.attachments || []) {
+        if (file.kind === "text") {
+          content +=
+            `\n\n[File: ${file.name}]\n` +
+            `${file.value}\n[End of file]`;
+        }
+      }
+
+      const images = (message.attachments || [])
+        .filter(file => file.kind === "image");
+
+      if (local || !images.length) {
+        return content || "Analyze the attached file.";
+      }
+
+      return [
+        {
+          type: "text",
+          text: content || "Analyze this image."
+        },
+        ...images.map(file => ({
+          type: "image_url",
+          image_url: { url: file.value }
+        }))
+      ];
+    }
+
+    async function getLocalEngine(model, run) {
+      if (!navigator.gpu) {
+        throw new Error(t("webgpu"));
+      }
+
+      if (engine && engineModel === model) {
+        return engine;
+      }
+
+      if (!enginePromise) {
+        enginePromise = (async () => {
+          if (engine) {
+            await engine.unload();
+            engine = null;
+            engineModel = "";
+          }
+
+          webllm ||= await import(WEBLLM_URL);
+
+          const created =
+            await webllm.CreateMLCEngine(model, {
+              initProgressCallback: progress => {
+                if (run.cancelled) return;
+
+                const percent =
+                  Number.isFinite(progress.progress)
+                    ? ` ${Math.round(progress.progress * 100)}%`
+                    : "";
+
+                run.show(
+                  `${t("preparing")}${percent}\n` +
+                  `${progress.text || ""}`
+                );
+              }
+            });
+
+          engine = created;
+          engineModel = model;
+          downloaded.set(model, true);
+
+          return created;
+        })();
+      }
+
+      try {
+        return await enginePromise;
+      } finally {
+        enginePromise = null;
+      }
+    }
+
+    function readCompatibleAnswer(data) {
+      const content = data?.choices?.[0]?.message?.content;
+
+      if (typeof content === "string") {
+        return content;
+      }
+
+      if (Array.isArray(content)) {
+        return content
+          .map(part => part.text || "")
+          .join("");
+      }
+
+      return "";
+    }
+
+    async function answer() {
+      if (currentRun) {
+        notify(t("busy"));
+        return;
+      }
+
+      const chat = activeChat();
+
+      if (
+        !chat ||
+        chat.messages.at(-1)?.role !== "user"
+      ) {
+        return;
+      }
+
+      const provider = settings.provider;
+      const model = settings.model;
+
+      if (!model) {
+        notify(t("chooseModel"));
+        return;
+      }
+
+      const connection =
+        provider === "local"
+          ? null
+          : structuredClone(connections[provider]);
+
+      if (
+        provider !== "local" &&
+        provider !== "custom" &&
+        !connection?.key
+      ) {
+        notify(t("keyNeeded"));
+        openSettings(provider);
+        return;
+      }
+
+      if (
+        provider === "custom" &&
+        (
+          !connection?.model ||
+          !validEndpoint(connection.endpoint)
+        )
+      ) {
+        notify(t("customNotConfigured"));
+        openSettings("custom");
+        return;
+      }
+
+      const run = {
+        cancelled: false,
+        controller: new AbortController(),
+        chatId: chat.id,
+        show: () => {}
+      };
+
+      currentRun = run;
+      $("send").textContent = "■";
+      $("send").classList.add("stop");
+
+      const reply = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        provider,
+        model,
+        text: ""
+      };
+
+      chat.messages.push(reply);
+
+      if (activeId === chat.id) {
+        renderMessages();
+      }
+
+      run.show = value => {
+        if (activeId !== chat.id) return;
+
+        const bubble = [...$("conversation")
+          .querySelectorAll("[data-message-id]")]
+          .find(node => node.dataset.messageId === reply.id);
+
+        if (bubble) {
+          bubble.textContent = value;
+          $("conversation").scrollTop =
+            $("conversation").scrollHeight;
+        }
+      };
+
+      try {
+        const messages = chat.messages
+          .slice(0, -1)
+          .slice(-20)
+          .map(message => ({
+            role: message.role,
+            content:
+              message.role === "user"
+                ? messageContent(
+                    message,
+                    provider === "local"
+                  )
+                : message.text
+          }));
+
+        if (provider === "local") {
+          run.show(t("preparing"));
+
+          const current =
+            await getLocalEngine(model, run);
+
+          if (!run.cancelled) {
+            const stream =
+              await current.chat.completions.create({
+                messages,
+                stream: true
+              });
+
+            run.show("…");
+
+            for await (const packet of stream) {
+              if (run.cancelled) break;
+
+              const piece =
+                packet.choices?.[0]?.delta?.content;
+
+              if (piece) {
+                reply.text += piece;
+                run.show(reply.text);
+              }
+            }
+          }
+        } else {
+          run.show("…");
+
+          const custom = provider === "custom";
+          const headers = {
+            "Content-Type": "application/json"
+          };
+
+          if (custom) {
+            if (connection.key) {
+              headers.Authorization =
+                `Bearer ${connection.key}`;
+            }
+          } else {
+            headers["x-provider-key"] =
+              connection.key;
+          }
+
+          const response = await fetch(
+            custom
+              ? connection.endpoint
+              : "/api/chat",
+            {
+              method: "POST",
+              signal: run.controller.signal,
+              headers,
+              body: JSON.stringify(
+                custom
+                  ? {
+                      model,
+                      messages,
+                      stream: false
+                    }
+                  : {
+                      provider,
+                      model,
+                      messages
+                    }
+              )
+            }
+          );
+
+          let data;
+
+          try {
+            data = await response.json();
+          } catch {
+            throw new Error(
+              `HTTP ${response.status}: invalid JSON response`
+            );
+          }
+
+          if (!response.ok) {
+            const detail =
+              data?.error?.message ||
+              data?.error ||
+              `HTTP ${response.status}`;
+
+            throw new Error(
+              typeof detail === "string"
+                ? detail
+                : JSON.stringify(detail)
+            );
+          }
+
+          if (!run.cancelled) {
+            reply.text = custom
+              ? readCompatibleAnswer(data)
+              : data.text || "";
+          }
+        }
+
+        if (
+          !run.cancelled &&
+          !reply.text.trim()
+        ) {
+          throw new Error(t("emptyAnswer"));
+        }
+      } catch (error) {
+        if (!run.cancelled) {
+          notify(`${t("failed")}: ${error.message}`);
+        }
+      } finally {
+        if (run.cancelled && reply.text) {
+          reply.text += `\n\n${t("stopped")}`;
+        }
+
+        if (!reply.text) {
+          const index = chat.messages.indexOf(reply);
+
+          if (index !== -1) {
+            chat.messages.splice(index, 1);
+          }
+        }
+
+        if (currentRun === run) {
+          currentRun = null;
+        }
+
+        $("send").textContent = "↑";
+        $("send").classList.remove("stop");
+
+        await saveChats();
+
+        if (activeId === chat.id) {
+          renderMessages();
+        }
+
+        if (!$("modelMenu").hidden) {
+          renderMenu();
+        }
+      }
+    }
+
+    async function sendMessage() {
+      if (currentRun) {
+        stopRun();
+        return;
+      }
+
+      const chat = ensureChat();
+      captureDraft();
+
+      const value = chat.draft.trim();
+      const attachments = chat.draftAttachments;
+
+      if (!value && !attachments.length) return;
+
+      const hasImage = attachments.some(file =>
+        file.kind === "image"
+      );
+
+      if (
+        hasImage &&
+        settings.provider === "local"
+      ) {
+        notify(t("imageLocal"));
+        return;
+      }
+
+      if (hasImage) {
+        const chosen = providerModels(
+          settings.provider
+        ).find(model =>
+          model.id === settings.model
+        );
+
+        if (!chosen?.image) {
+          notify(t("imageUnsupported"));
+          return;
+        }
+      }
+
+      if (!settings.model) {
+        notify(t("chooseModel"));
+        return;
+      }
+
+      if (
+        settings.provider !== "local" &&
+        settings.provider !== "custom" &&
+        !connections[settings.provider]?.key
+      ) {
+        notify(t("keyNeeded"));
+        openSettings(settings.provider);
+        return;
+      }
+
+      if (
+        settings.provider === "custom" &&
+        !validEndpoint(connections.custom.endpoint)
+      ) {
+        notify(t("customNotConfigured"));
+        openSettings("custom");
+        return;
+      }
+
+      const first = chat.messages.length === 0;
+
+      chat.messages.push({
+        id: crypto.randomUUID(),
+        role: "user",
+        text: value,
+        attachments
+      });
+
+      if (first) {
+        chat.title =
+          (
+            value ||
+            attachments[0]?.name ||
+            t("newChat")
+          ).slice(0, 48);
+      }
+
+      chat.draft = "";
+      chat.draftAttachments = [];
+      $("prompt").value = "";
+
+      clearTimeout(draftSaveTimer);
+      await saveChats();
+
+      render();
+      answer();
+    }
+
+    async function preparePhoto(file) {
+      if (file.size > 12 * 1024 * 1024) {
+        throw new Error(t("photoSize"));
+      }
+
+      if (
+        !["image/png", "image/jpeg", "image/webp"]
+          .includes(file.type)
+      ) {
+        throw new Error(t("photoError"));
+      }
+
+      let image;
+      let objectURL;
+
+      try {
+        if ("createImageBitmap" in window) {
+          image = await createImageBitmap(file);
+        } else {
+          throw new Error("fallback");
+        }
+      } catch {
+        objectURL = URL.createObjectURL(file);
+
+        image = await new Promise((resolve, reject) => {
+          const element = new Image();
+          element.onload = () => resolve(element);
+          element.onerror = () =>
+            reject(new Error(t("photoError")));
+          element.src = objectURL;
+        });
+      }
+
+      try {
+        const width = image.width || image.naturalWidth;
+        const height = image.height || image.naturalHeight;
+
+        if (!width || !height) {
+          throw new Error(t("photoError"));
+        }
+
+        const scale = Math.min(
+          1,
+          1600 / Math.max(width, height)
+        );
+
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(width * scale));
+        canvas.height = Math.max(1, Math.round(height * scale));
+
+        const context = canvas.getContext("2d");
+
+        if (!context) {
+          throw new Error(t("photoError"));
+        }
+
+        context.drawImage(
+          image,
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+
+        return await new Promise((resolve, reject) => {
+          canvas.toBlob(
+            blob => blob
+              ? resolve(blob)
+              : reject(new Error(t("photoError"))),
+            "image/jpeg",
+            .82
+          );
+        });
+      } finally {
+        image.close?.();
+
+        if (objectURL) {
+          URL.revokeObjectURL(objectURL);
+        }
+      }
+    }
+
+    function showPhoto(blob) {
+      if (photoURL) {
+        URL.revokeObjectURL(photoURL);
+      }
+
+      photoURL =
+        blob ? URL.createObjectURL(blob) : null;
+
+      document.documentElement.style.setProperty(
+        "--photo",
+        photoURL
+          ? `url("${photoURL}")`
+          : "none"
+      );
+    }
+
+    $("toggleSidebar").onclick = () => {
+      $("app").classList.toggle("sidebar-open");
+    };
+
+    $("newChat").onclick = newChat;
+
+    $("openSettings").onclick = () => {
+      openSettings();
+    };
+
+    $("closeSettings").onclick = closeSettings;
+    $("chatSearch").oninput = renderSidebar;
+    $("send").onclick = sendMessage;
+
+    $("attach").onclick = () => {
+      $("files").click();
+    };
+
+    $("files").onchange = async event => {
+      await attachFiles(event.target.files);
+      event.target.value = "";
+    };
+
+    $("prompt").addEventListener("input", () => {
+      const chat = ensureChat();
+      chat.draft = $("prompt").value;
+      scheduleDraftSave();
+    });
+
+    $("prompt").onkeydown = event => {
+      if (
+        event.key === "Enter" &&
+        !event.shiftKey &&
+        !event.isComposing
+      ) {
+        event.preventDefault();
+        sendMessage();
+      }
+    };
+
+    $("modelButton").onclick = () => {
+      const opening = $("modelMenu").hidden;
+
+      $("modelMenu").hidden = !opening;
+      $("modelButton").setAttribute(
+        "aria-expanded",
+        String(opening)
+      );
+
+      if (!opening) return;
+
+      menuTab = settings.provider;
+      menuLimit = 50;
+
+      renderMenu();
+
+      if (menuTab !== "custom") {
+        loadCatalog(menuTab).catch(() => {});
+      }
+    };
+
+    $("modelSearch").oninput = () => {
+      menuLimit = 50;
+      renderMenu();
+    };
+
+    $("showMore").onclick = () => {
+      menuLimit += 50;
+      renderMenu();
+    };
+
+    $("language").onchange = () => {
+      settings.language = $("language").value;
+      persistSettings();
+      applyLanguage();
+    };
+
+    $("keyProvider").onchange = () => {
+      captureConnectionForm();
+      showConnectionForm($("keyProvider").value);
+    };
+
+    $("saveSettings").onclick = async () => {
+      captureConnectionForm();
+
+      const custom = formDrafts.custom;
+
+      if (
+        custom.endpoint &&
+        !validEndpoint(custom.endpoint)
+      ) {
+        notify(t("invalidEndpoint"));
+        return;
+      }
+
+      if (
+        custom.endpoint &&
+        !custom.model
+      ) {
+        notify(t("invalidCustomModel"));
+        return;
+      }
+
+      if (!db) {
+        notify(t("saveError"));
+        return;
+      }
+
+      const next = structuredClone(formDrafts);
+
+      try {
+        await dbPut("provider-connections", next);
+      } catch {
+        notify(t("saveError"));
+        return;
+      }
+
+      for (const provider of [
+        "huggingface",
+        "gemini",
+        "custom"
+      ]) {
+        const changed =
+          JSON.stringify(connections[provider]) !==
+          JSON.stringify(next[provider]);
+
+        connections[provider] = next[provider];
+
+        if (changed) {
+          catalogs.delete(provider);
+          catalogErrors.delete(provider);
+        }
+
+        sessionStorage.removeItem(
+          `extend-key-${provider}`
+        );
+      }
+
+      if (
+        settings.provider === "custom" &&
+        settings.model !== connections.custom.model
+      ) {
+        settings.model = connections.custom.model;
+        persistSettings();
+      }
+
+      closeSettings();
+      render();
+      notify(t("saved"));
+    };
+
+    $("choosePhoto").onclick = () => {
+      if (!db) {
+        notify(t("saveError"));
+        return;
+      }
+
+      $("photoFile").click();
+    };
+
+    $("photoFile").onchange = async event => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+
+      if (!file) return;
+
+      try {
+        const photo = await preparePhoto(file);
+        await dbPut("theme-photo", photo);
+        showPhoto(photo);
+      } catch (error) {
+        notify(`${t("photoError")} ${error.message}`);
+      }
+    };
+
+    $("removePhoto").onclick = async () => {
+      if (!db) return;
+
+      try {
+        await dbRemove("theme-photo");
+        showPhoto(null);
+      } catch {
+        notify(t("photoError"));
+      }
+    };
+
+    $("settingsBackdrop").onclick = event => {
+      if (event.target === $("settingsBackdrop")) {
+        closeSettings();
+      }
+    };
+
+    // Вкладки меню пересоздаются при клике. pointerdown не закрывает их случайно.
+    document.addEventListener("pointerdown", event => {
+      if (!$("modelWrap").contains(event.target)) {
+        closeMenu();
+      }
+    });
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        closeMenu();
+        closeSettings();
+      }
+    });
+
+    window.addEventListener("pagehide", () => {
+      captureDraft();
+      clearTimeout(draftSaveTimer);
+      saveChats();
+    });
+
+    async function start() {
+      persistSettings();
+      applyTheme();
+      applyLanguage();
+
+      try {
+        db = await openDB();
+
+        const stored = await dbGet("chats");
+
+        chats = Array.isArray(stored)
+          ? stored.map(normalizeChat)
+          : [];
+
+        const storedId =
+          localStorage.getItem(ACTIVE_KEY);
+
+        activeId =
+          chats.find(chat => chat.id === storedId)?.id ||
+          chats[0]?.id ||
+          null;
+
+        if (!activeId) {
+          makeEmptyChat();
+        }
+
+        persistActiveId();
+
+        const savedConnections =
+          await dbGet("provider-connections");
+
+        if (
+          savedConnections &&
+          typeof savedConnections === "object"
+        ) {
+          for (const provider of [
+            "huggingface",
+            "gemini",
+            "custom"
+          ]) {
+            if (
+              savedConnections[provider] &&
+              typeof savedConnections[provider] === "object"
+            ) {
+              connections[provider] = {
+                ...connections[provider],
+                ...savedConnections[provider]
+              };
+            }
+          }
+        } else {
+          // Перенос ключей из предыдущей версии.
+          const oldKeys = await dbGet("provider-keys");
+
+          if (oldKeys) {
+            connections.huggingface.key =
+              typeof oldKeys.huggingface === "string"
+                ? oldKeys.huggingface
+                : "";
+
+            connections.gemini.key =
+              typeof oldKeys.gemini === "string"
+                ? oldKeys.gemini
+                : "";
+          }
+
+          let migrated = !!oldKeys;
+
+          for (const provider of [
+            "huggingface",
+            "gemini"
+          ]) {
+            const sessionKey =
+              sessionStorage.getItem(
+                `extend-key-${provider}`
+              );
+
+            if (
+              !connections[provider].key &&
+              sessionKey
+            ) {
+              connections[provider].key =
+                sessionKey;
+              migrated = true;
+            }
+
+            sessionStorage.removeItem(
+              `extend-key-${provider}`
+            );
+          }
+
+          if (migrated) {
+            await dbPut(
+              "provider-connections",
+              connections
+            );
+          }
+        }
+
+        const photo = await dbGet("theme-photo");
+
+        if (photo instanceof Blob) {
+          showPhoto(photo);
+        }
+
+        restoreDraft();
+        render();
+      } catch (error) {
+        notify(`${t("saveError")} ${error.message}`);
+      }
+
+      loadCatalog("local").catch(error => {
+        notify(`${t("failed")}: ${error.message}`);
+      });
+    }
+
+    start();
+  </script>
+</body>
+</html>

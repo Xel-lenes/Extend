@@ -30,7 +30,7 @@ Clone the repository:
 
 ```bash
 git clone https://github.com/Xel-lenes/Extend.git
-cd extend
+cd Extend
 ```
 
 Start Extend:
